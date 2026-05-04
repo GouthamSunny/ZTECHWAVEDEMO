@@ -1,0 +1,8 @@
+COLUMN TABLE ztechwave_Header (
+  sno INTEGER NOT NULL,
+  name NVARCHAR(5000),
+  price NVARCHAR(5000),
+  quantity INTEGER,
+  rating INTEGER,
+  PRIMARY KEY(sno)
+)

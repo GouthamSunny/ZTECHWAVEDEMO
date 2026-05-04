@@ -1,0 +1,7 @@
+VIEW catalog_header AS SELECT
+  Header_0.sno,
+  Header_0.name,
+  Header_0.price,
+  Header_0.quantity,
+  Header_0.rating
+FROM ztechwave_Header AS Header_0

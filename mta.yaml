@@ -1,0 +1,99 @@
+_schema-version: 3.3.0
+ID: ztechwavedemo
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: ztechwavedemo-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: ztechwavedemo-auth
+  - name: ztechwavedemo-db
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    instances: 1
+  build-parameters:
+    builder: npm-ci
+- name: ztechwavedemo-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: ztechwavedemo-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: ztechwavedemo-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: ztechwavedemo-destination-service
+    parameters:
+      content-target: true
+  - name: ztechwavedemo_html_repo_host
+    parameters:
+      service-key:
+        name: ztechwavedemo_html_repo_host-key
+  - name: ztechwavedemo-auth
+    parameters:
+      service-key:
+        name: ztechwavedemo-auth-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: approuter_ztechwavedemo_html_repo_host
+          ServiceInstanceName: ztechwavedemo-html5-app-host-service
+          ServiceKeyName: ztechwavedemo_html_repo_host-key
+          sap.cloud.service: approuter
+        - Authentication: OAuth2UserTokenExchange
+          Name: approuter_ztechwavedemo_auth
+          ServiceInstanceName: ztechwavedemo-auth
+          ServiceKeyName: ztechwavedemo-auth-key
+          sap.cloud.service: approuter
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: ztechwavedemo-auth
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      oauth2-configuration:
+        credential-types:
+        - binding-secret
+        - x509
+      tenant-mode: dedicated
+      xsappname: ztechwavedemo-${org}-${space}
+    path: ./xs-security.json
+    service: xsuaa
+    service-plan: application
+- name: ztechwavedemo-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: ztechwavedemo-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: ztechwavedemo-destination-service
+    service-plan: lite
+- name: ztechwavedemo_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: ztechwavedemo-html5-app-host-service
+    service-plan: app-host
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production
