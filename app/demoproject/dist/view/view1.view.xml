@@ -1,0 +1,29 @@
+<mvc:View
+    controllerName="demoproject.controller.view1"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+>
+    <Page
+        id="page"
+        title="{i18n>title}"
+    >
+        <Text text="Hello" />
+
+        <Table items="{/header}">
+            <columns>
+                <Column>
+                    <Text text="Name" />
+                </Column>
+                <Column>
+                    <Text text="price" />
+                </Column>
+            </columns>
+            <items>
+                <ColumnListItem>
+                    <Text text="{name}" />
+                    <Text text="{price}" />
+                </ColumnListItem>
+            </items>
+        </Table>
+    </Page>
+</mvc:View>

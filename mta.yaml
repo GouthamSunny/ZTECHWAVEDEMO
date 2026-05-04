@@ -55,6 +55,56 @@ modules:
         existing_destinations_policy: ignore
   build-parameters:
     no-source: true
+- name: ztechwavedemo
+  type: approuter.nodejs
+  path: app/router
+  requires:
+  - name: srv-api
+    group: destinations
+    properties:
+      forwardAuthToken: true
+      name: srv-api
+      url: ~{srv-url}
+  - name: ztechwavedemo-auth
+  - name: ztechwavedemo-destination-service
+    group: destinations
+    properties:
+      forwardAuthToken: false
+      name: ui5
+      url: https://ui5.sap.com
+  provides:
+  - name: app-api
+    properties:
+      app-protocol: ${protocol}
+      app-uri: ${default-uri}
+  parameters:
+    disk-quota: 256M
+    keep-existing-routes: true
+    memory: 256M
+- name: ztechwavedemo-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: ztechwavedemo_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - demoproject.zip
+      name: demoproject
+      target-path: resources/
+- name: demoproject
+  type: html5
+  path: app/demoproject
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
 resources:
 - name: ztechwavedemo-auth
   type: org.cloudfoundry.managed-service
@@ -64,11 +114,15 @@ resources:
         credential-types:
         - binding-secret
         - x509
+        redirect-uris:
+        - https://*~{app-api/app-uri}/**
       tenant-mode: dedicated
       xsappname: ztechwavedemo-${org}-${space}
     path: ./xs-security.json
     service: xsuaa
     service-plan: application
+  requires:
+  - name: app-api
 - name: ztechwavedemo-db
   type: com.sap.xs.hdi-container
   parameters:
@@ -79,10 +133,28 @@ resources:
   parameters:
     config:
       HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+            HTML5.ForwardAuthToken: true
+            Name: srv-api
+            ProxyType: Internet
+            Type: HTTP
+            URL: ~{srv-api/srv-url}
+          existing_destinations_policy: update
       version: 1.0.0
     service: destination
     service-name: ztechwavedemo-destination-service
     service-plan: lite
+  requires:
+  - name: srv-api
 - name: ztechwavedemo_html_repo_host
   type: org.cloudfoundry.managed-service
   parameters:
@@ -90,6 +162,7 @@ resources:
     service-name: ztechwavedemo-html5-app-host-service
     service-plan: app-host
 parameters:
+  deploy_mode: html5-repo
   enable-parallel-deployments: true
 build-parameters:
   before-all:
